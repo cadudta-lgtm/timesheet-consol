@@ -85,19 +85,6 @@ const EXEC = 'https://script.google.com/macros/s/AKfycbwweZSBqvFDags_FyGXX25oZCF
 const CHAVE = 'timesheet-celular';   // { dt, credId, email }
 let pendente = null;                 // dados recebidos do app, aguardando o "Use phone lock"
 
-// ---------- DIAGNÓSTICO TEMPORÁRIO (remover depois) ----------
-function dbg(t) {
-  let el = document.getElementById('debugCasca');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'debugCasca';
-    el.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:99;background:#111;color:#FFD54F;' +
-      'font:11px ui-monospace,monospace;padding:4px 6px;word-break:break-all';
-    document.body.appendChild(el);
-  }
-  el.textContent += '[shell] ' + t + '  ';
-}
-
 // ---------- Utilitários ----------
 function ehCelular() { return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent); }
 
@@ -191,13 +178,10 @@ async function ativar() {
 // ---------- Mensagens vindas do app ----------
 window.addEventListener('message', async function (e) {
   const msg = e.data || {};
-  dbg('msg from ' + e.origin + ' tipo=' + msg.tipo);
-  if (!/\.googleusercontent\.com$/.test(new URL(e.origin).hostname)) { dbg('IGNORED (origin)'); return; }
+  if (!/\.googleusercontent\.com$/.test(new URL(e.origin).hostname)) return;
 
   if (msg.tipo === 'dispositivo' && msg.dt) {
-    const bio = await temBiometria();
-    dbg('biometrics=' + bio + ' PKC=' + !!window.PublicKeyCredential);
-    if (!bio) return;
+    if (!(await temBiometria())) return;
     pendente = msg;
     document.getElementById('oferta').classList.remove('oculto');
   }
@@ -218,7 +202,6 @@ document.getElementById('btnAgoraNao').addEventListener('click', function () {
 
 // ---------- Início ----------
 (async function () {
-  dbg('v3 loaded');
   const salvo = ler();
   if (salvo && salvo.dt && salvo.credId && await temBiometria()) {
     document.getElementById('telaBloqueio').classList.remove('oculto');
