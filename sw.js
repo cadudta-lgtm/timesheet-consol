@@ -1,5 +1,6 @@
-// Service worker mínimo: só o necessário para o navegador oferecer a instalação.
-const CACHE = 'timesheet-v1';
+// Service worker: rede primeiro, cache só se estiver offline.
+// Assim cada atualização no GitHub aparece na próxima abertura do app.
+const CACHE = 'timesheet-v2';
 const CASCA = ['./', './index.html', './manifest.json', './icone-192.png', './icone-512.png'];
 
 self.addEventListener('install', function (e) {
@@ -16,8 +17,14 @@ self.addEventListener('activate', function (e) {
 });
 
 self.addEventListener('fetch', function (e) {
-  // Só a casca é servida do cache; o timesheet em si vem sempre da rede.
-  if (e.request.mode === 'navigate' || CASCA.some(function (p) { return e.request.url.endsWith(p.replace('./', '')); })) {
-    e.respondWith(caches.match(e.request).then(function (r) { return r || fetch(e.request); }));
-  }
+  if (new URL(e.request.url).origin !== self.location.origin) return;   // Apps Script não passa por aqui
+  e.respondWith(
+    fetch(e.request)
+      .then(function (r) {
+        const copia = r.clone();
+        caches.open(CACHE).then(function (c) { c.put(e.request, copia); });
+        return r;
+      })
+      .catch(function () { return caches.match(e.request); })
+  );
 });
