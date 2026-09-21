@@ -12,22 +12,208 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
   html, body { margin: 0; height: 100%; background: #FCFBF9; }
+  body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; color: #3A3D42; }
   iframe { border: 0; width: 100%; height: 100%; display: block; }
+
+  .tela {
+    position: fixed; inset: 0; z-index: 5;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 24px; text-align: center; background: #FCFBF9;
+  }
+  .tela img { width: 150px; height: auto; margin-bottom: 18px; }
+  .tela h1 { font-size: 20px; font-weight: 600; margin: 0 0 6px; }
+  .tela p { font-size: 14px; color: #7B8087; margin: 0 0 22px; max-width: 300px; }
+
+  .botao {
+    font: inherit; font-size: 16px; font-weight: 600;
+    width: 100%; max-width: 300px; padding: 13px;
+    border: none; border-radius: 10px;
+    background: #F5A623; color: #2A2C30; cursor: pointer;
+  }
+  .link {
+    margin-top: 14px; background: none; border: none;
+    font: inherit; font-size: 14px; color: #7B8087; text-decoration: underline; cursor: pointer;
+  }
+  .erro { color: #B3261E; font-size: 13px; min-height: 18px; margin-top: 12px; }
+
+  /* janela de oferta, por cima do app */
+  .oferta {
+    position: fixed; inset: 0; z-index: 6;
+    background: rgba(58, 61, 66, 0.55);
+    display: flex; align-items: flex-end; justify-content: center;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+  }
+  .oferta .caixa {
+    background: #FFFFFF; border-radius: 14px; padding: 20px;
+    width: 100%; max-width: 420px; text-align: center;
+  }
+  .oferta h2 { font-size: 18px; margin: 0 0 6px; }
+  .oferta p { font-size: 14px; color: #7B8087; margin: 0 0 16px; }
+
+  .oculto { display: none !important; }
 </style>
 </head>
 <body>
 
-<!-- >>> troque pela URL /exec da sua implantação <<< -->
-<iframe id="app"
-        src="https://script.google.com/macros/s/COLE_AQUI_O_SEU_ID/exec"
-        allow="clipboard-write"></iframe>
+<!-- Tela de desbloqueio (celular já registrado) -->
+<div class="tela oculto" id="telaBloqueio">
+  <img src="icone-512.png" alt="consol">
+  <h1>Timesheet</h1>
+  <p>Use your phone's fingerprint, face or PIN to open.</p>
+  <button class="botao" id="btnDesbloquear">Unlock</button>
+  <button class="link" id="btnUsarEmail">Use e-mail code instead</button>
+  <div class="erro" id="erroBloqueio"></div>
+</div>
+
+<!-- Oferta depois do primeiro login por e-mail -->
+<div class="oferta oculto" id="oferta">
+  <div class="caixa">
+    <h2>Skip the e-mail code?</h2>
+    <p>Next time, open Timesheet with this phone's fingerprint, face or PIN.</p>
+    <button class="botao" id="btnAtivar">Use phone lock</button>
+    <button class="link" id="btnAgoraNao">Not now</button>
+    <div class="erro" id="erroOferta"></div>
+  </div>
+</div>
+
+<iframe id="app" class="oculto" allow="clipboard-write"></iframe>
 
 <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function () {
-      navigator.serviceWorker.register('sw.js');
+// >>> troque pela URL /exec da sua implantação (a mesma que já estava aqui) <<<
+const EXEC = 'https://script.google.com/macros/s/COLE_AQUI_O_SEU_ID/exec';
+
+const CHAVE = 'timesheet-celular';   // { dt, credId, email }
+let pendente = null;                 // dados recebidos do app, aguardando o "Use phone lock"
+
+// ---------- Utilitários ----------
+function ehCelular() { return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent); }
+
+function aleatorio(n) {
+  const b = new Uint8Array(n);
+  crypto.getRandomValues(b);
+  return b;
+}
+
+function paraB64(buf) {
+  return btoa(String.fromCharCode.apply(null, new Uint8Array(buf)));
+}
+
+function deB64(s) {
+  return Uint8Array.from(atob(s), function (c) { return c.charCodeAt(0); });
+}
+
+function ler() {
+  try { return JSON.parse(localStorage.getItem(CHAVE) || 'null'); } catch (e) { return null; }
+}
+
+function gravar(v) {
+  try { v ? localStorage.setItem(CHAVE, JSON.stringify(v)) : localStorage.removeItem(CHAVE); } catch (e) {}
+}
+
+async function temBiometria() {
+  if (!window.PublicKeyCredential || !ehCelular()) return false;
+  try { return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(); }
+  catch (e) { return false; }
+}
+
+// ---------- Abrir o app ----------
+function abrirApp(dt) {
+  document.getElementById('telaBloqueio').classList.add('oculto');
+  const f = document.getElementById('app');
+  f.src = EXEC + '?pwa=1' + (dt ? '&dt=' + encodeURIComponent(dt) : '');
+  f.classList.remove('oculto');
+}
+
+// ---------- Desbloqueio com o bloqueio do celular ----------
+async function desbloquear() {
+  const salvo = ler();
+  const erro = document.getElementById('erroBloqueio');
+  erro.textContent = '';
+
+  try {
+    await navigator.credentials.get({
+      publicKey: {
+        challenge: aleatorio(32),
+        allowCredentials: [{ type: 'public-key', id: deB64(salvo.credId) }],
+        userVerification: 'required',
+        timeout: 60000
+      }
     });
+    abrirApp(salvo.dt);
+  } catch (e) {
+    erro.textContent = 'Not unlocked. Try again or use the e-mail code.';
   }
+}
+
+// ---------- Registro do celular ----------
+async function ativar() {
+  const erro = document.getElementById('erroOferta');
+  erro.textContent = '';
+
+  try {
+    const cred = await navigator.credentials.create({
+      publicKey: {
+        challenge: aleatorio(32),
+        rp: { name: 'Timesheet consol' },
+        user: { id: aleatorio(16), name: pendente.email, displayName: pendente.nome || pendente.email },
+        pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+        authenticatorSelection: {
+          authenticatorAttachment: 'platform',
+          userVerification: 'required',
+          residentKey: 'discouraged'
+        },
+        attestation: 'none',
+        timeout: 60000
+      }
+    });
+
+    gravar({ dt: pendente.dt, credId: paraB64(cred.rawId), email: pendente.email });
+    pendente = null;
+    document.getElementById('oferta').classList.add('oculto');
+  } catch (e) {
+    erro.textContent = 'Could not set it up on this phone. You can keep using the e-mail code.';
+  }
+}
+
+// ---------- Mensagens vindas do app ----------
+window.addEventListener('message', async function (e) {
+  if (!/\.googleusercontent\.com$/.test(new URL(e.origin).hostname)) return;
+  const msg = e.data || {};
+
+  if (msg.tipo === 'dispositivo' && msg.dt) {
+    if (!(await temBiometria())) return;
+    pendente = msg;
+    document.getElementById('oferta').classList.remove('oculto');
+  }
+
+  if (msg.tipo === 'sair' || msg.tipo === 'dispositivo-invalido') {
+    gravar(null);
+  }
+});
+
+// ---------- Botões ----------
+document.getElementById('btnDesbloquear').addEventListener('click', desbloquear);
+document.getElementById('btnUsarEmail').addEventListener('click', function () { gravar(null); abrirApp(''); });
+document.getElementById('btnAtivar').addEventListener('click', ativar);
+document.getElementById('btnAgoraNao').addEventListener('click', function () {
+  pendente = null;
+  document.getElementById('oferta').classList.add('oculto');
+});
+
+// ---------- Início ----------
+(async function () {
+  const salvo = ler();
+  if (salvo && salvo.dt && salvo.credId && await temBiometria()) {
+    document.getElementById('telaBloqueio').classList.remove('oculto');
+    desbloquear();          // tenta direto; se o aparelho exigir toque, o botão fica disponível
+  } else {
+    abrirApp('');
+  }
+})();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js'); });
+}
 </script>
 </body>
 </html>
