@@ -186,6 +186,22 @@ window.addEventListener('message', async function (e) {
     document.getElementById('oferta').classList.remove('oculto');
   }
 
+  if (msg.tipo === 'pedir-local') {
+    const responder = function (r) {
+      r.tipo = 'local';
+      r.id = msg.id;
+      e.source.postMessage(r, e.origin);
+    };
+    if (!navigator.geolocation) return responder({ ok: false, erro: 'no GPS on this device' });
+    navigator.geolocation.getCurrentPosition(
+      function (pos) {
+        responder({ ok: true, lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy });
+      },
+      function (err) { responder({ ok: false, codigo: err.code, erro: err.message }); },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+    );
+  }
+
   if (msg.tipo === 'sair' || msg.tipo === 'dispositivo-invalido') {
     gravar(null);
   }
