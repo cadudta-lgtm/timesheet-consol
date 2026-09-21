@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --orange: #F5A623; --orange-deep: #E28C12;
+    --ink: #3A3D42; --muted: #7B8087;
+    --bg: #FCFBF9; --surface: #FFFFFF; --line: #E4E3DE;
+    --vermelho: #B3261E; --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 16px 170px;
+    background: var(--bg); color: var(--ink);
+    font-family: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-size: 16px; line-height: 1.4; -webkit-text-size-adjust: 100%;
+  }
+  #arte {
+    position: fixed; inset: 0;
+    background-repeat: no-repeat; background-position: center 42%;
+    background-size: min(88vw, 620px) auto;
+    opacity: 0.11; pointer-events: none; z-index: 0;
+  }
+  .wrap { position: relative; z-index: 1; max-width: 640px; margin: 0 auto; }
+
+  /* ---------- Login ---------- */
+  #login { max-width: 400px; margin: 0 auto; padding-top: 60px; text-align: center; }
+  #login img { height: 46px; width: auto; margin-bottom: 26px; }
+  #login h1 { font-size: 20px; font-weight: 600; margin: 0 0 6px; }
+  #login p { font-size: 14px; color: var(--muted); margin: 0 0 18px; }
+  #login input {
+    width: 100%; font: inherit; padding: 11px 12px;
+    border: 1px solid var(--line); border-radius: 8px;
+    background: var(--surface); color: var(--ink); text-align: center;
+  }
+  #login input#campoCodigo { font-size: 24px; letter-spacing: 0.24em; font-variant-numeric: tabular-nums; }
+  #login .btn { width: 100%; margin-top: 10px; }
+  #login .erro { color: var(--vermelho); font-size: 13px; min-height: 20px; margin-top: 8px; }
+  #login .voltar { background: none; border: none; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; margin-top: 6px; text-decoration: underline; }
+
+  /* ---------- Cabeçalho ---------- */
+  header {
+    position: sticky; top: 0; z-index: 5;
+    background: rgba(252, 251, 249, 0.94); backdrop-filter: blur(6px);
+    padding: 14px 0 8px; border-bottom: 1px solid var(--line);
+  }
+  .topo-marca { display: flex; align-items: center; gap: 12px; }
+  #logo { display: block; height: 32px; width: auto; }
+  #logo:not([src]) { visibility: hidden; }
+  .quem { margin-left: auto; text-align: right; font-size: 13px; color: var(--muted); line-height: 1.25; }
+  .quem b { display: block; color: var(--ink); font-size: 14px; font-weight: 600; }
+  .selo {
+    display: inline-block; padding: 2px 8px; border-radius: 999px;
+    font-size: 11px; font-weight: 500; letter-spacing: 0.06em;
+    border: 1px solid var(--line); color: var(--muted);
+  }
+  .selo.admin { color: var(--orange-deep); border-color: var(--orange); background: #FEF7EC; }
+  .abas { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+  .aba {
+    font: inherit; font-size: 14px; font-weight: 500;
+    padding: 8px 14px; border: 1px solid var(--line);
+    background: var(--surface); border-radius: 999px; color: var(--muted); cursor: pointer;
+  }
+  .aba.ativa { background: var(--ink); border-color: var(--ink); color: #FFFFFF; }
+  .escolha { margin-top: 10px; }
+  .escolha select {
+    width: 100%; font: inherit; font-size: 14px;
+    padding: 9px 10px; border: 1px solid var(--line);
+    border-radius: 8px; background: var(--surface); color: var(--ink);
+  }
+  .lendo-alguem { margin-top: 8px; font-size: 13px; color: var(--orange-deep); }
+  .semana-nav { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+  .semana-nav h1 { flex: 1; margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+  .semana-nav h1 span { display: block; font-size: 13px; font-weight: 400; color: var(--muted); }
+  .seta {
+    width: 38px; height: 38px; flex: none;
+    border: 1px solid var(--line); background: var(--surface);
+    border-radius: var(--radius); color: var(--ink); font-size: 18px; cursor: pointer;
+  }
+  .seta:hover { border-color: var(--orange); color: var(--orange-deep); }
+  #status { font-size: 13px; color: var(--muted); min-height: 20px; padding: 7px 2px 0; }
+  #status.erro { color: var(--vermelho); }
+
+  /* ---------- Dias ---------- */
+  .dia {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 12px 14px; margin-top: 10px;
+  }
+  .dia.hoje { border-color: var(--orange); border-width: 2px; padding: 11px 13px; }
+  .dia-topo { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .dia-nome { font-weight: 600; font-size: 15px; }
+  .dia-nome small { font-weight: 400; color: var(--muted); margin-left: 6px; }
+  .dia-total { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .dia-total.zero { color: var(--line); font-weight: 500; }
+  .horas { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  .horas input[type=time] {
+    flex: 1; min-width: 0; font: inherit; font-variant-numeric: tabular-nums;
+    padding: 9px 10px; border: 1px solid var(--line);
+    border-radius: 8px; background: #FDFDFC; color: var(--ink);
+  }
+  .horas input[type=time]:disabled { background: #F4F3F0; color: var(--muted); }
+  .horas input[type=time]:focus-visible { outline: 2px solid var(--orange); outline-offset: 1px; }
+  .ate { color: var(--muted); font-size: 14px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 7px 12px; border: 1px solid var(--line); border-radius: 999px;
+    font-size: 14px; color: var(--muted); cursor: pointer; user-select: none;
+  }
+  .chip.travado { cursor: default; opacity: 0.75; }
+  .chip input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .chip .marcador { width: 15px; height: 15px; border: 1.5px solid var(--muted); border-radius: 4px; flex: none; }
+  .chip.on { border-color: var(--orange); color: var(--orange-deep); background: #FEF7EC; }
+  .chip.on .marcador { background: var(--orange); border-color: var(--orange); }
+  .chip input:focus-visible + .marcador { outline: 2px solid var(--orange); outline-offset: 2px; }
+  .aviso { margin-top: 8px; font-size: 13px; color: var(--orange-deep); }
+
+  /* ---------- Faixa de totais ---------- */
+  .mini { display: flex; gap: 4px; }
+  .mini div { flex: 1; text-align: center; padding: 5px 2px; border-radius: 7px; background: rgba(255,255,255,0.10); }
+  .mini span { display: block; font-size: 10px; letter-spacing: 0.06em; opacity: 0.7; }
+  .mini b { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  /* ---------- Rodapé ---------- */
+  footer {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 6;
+    background: var(--ink); color: #FFFFFF;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  }
+  .rodape { max-width: 640px; margin: 0 auto; }
+  .rodape .linha { display: flex; align-items: center; gap: 14px; margin-top: 9px; }
+  .rodape .rotulo { font-size: 12px; opacity: 0.7; }
+  .rodape .valor {
+    font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em; line-height: 1.1; color: var(--orange);
+  }
+  .rodape .valor b { font-weight: 500; font-size: 14px; color: #FFFFFF; opacity: 0.75; }
+  .pagar { text-align: right; }
+  .pagar .quanto { font-size: 21px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .acoes { margin-left: auto; display: flex; gap: 8px; }
+  .btn {
+    font: inherit; font-size: 14px; padding: 8px 13px; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.45); background: transparent; color: #FFFFFF; cursor: pointer;
+  }
+  .btn:hover { background: rgba(255,255,255,0.14); }
+  .btn.principal { background: var(--orange); border-color: var(--orange); color: #2A2C30; font-weight: 600; }
+  .btn.claro { border-color: var(--line); color: var(--ink); }
+  .btn.claro:hover { background: #F6F5F2; }
+
+  /* ---------- Cartões ---------- */
+  .cartao {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 12px 14px; margin-top: 10px;
+  }
+  .cartao .topo { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .cartao .periodo { font-weight: 600; font-size: 15px; }
+  .cartao .atual {
+    font-size: 11px; font-weight: 500; letter-spacing: 0.06em; color: var(--orange-deep);
+    background: #FEF7EC; border-radius: 999px; padding: 2px 8px; margin-left: 7px;
+  }
+  .cartao .soma { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--orange-deep); text-align: right; }
+  .cartao .soma em { display: block; font-style: normal; font-size: 13px; color: var(--muted); font-weight: 500; }
+  .cartao .mini { margin-top: 10px; }
+  .cartao .mini div { background: #F6F5F2; color: var(--ink); }
+  .cartao .mini span { opacity: 0.6; }
+  .log-topo { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; color: var(--muted); }
+  .log-tipo { font-weight: 600; letter-spacing: 0.04em; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #F6F5F2; color: var(--ink); }
+  .log-mudanca { margin-top: 7px; font-size: 15px; font-variant-numeric: tabular-nums; }
+  .log-mudanca s { color: var(--muted); }
+  .log-motivo { margin-top: 6px; font-size: 14px; }
+  .log-motivo.sem { color: var(--muted); font-style: italic; }
+  .vazio {
+    margin-top: 16px; padding: 22px 16px; border: 1px dashed var(--line);
+    border-radius: var(--radius); color: var(--muted); text-align: center; font-size: 15px;
+  }
+  .oculto { display: none !important; }
+
+  /* ---------- Janelas ---------- */
+  .janela {
+    position: fixed; inset: 0; background: rgba(58,61,66,0.55);
+    display: none; align-items: center; justify-content: center; padding: 20px; z-index: 10;
+  }
+  .janela.aberta { display: flex; }
+  .janela .caixa { background: var(--surface); border-radius: var(--radius); padding: 18px; width: 100%; max-width: 430px; }
+  .janela h2 { margin: 0 0 6px; font-size: 18px; font-weight: 600; }
+  .janela p { margin: 0 0 12px; font-size: 14px; color: var(--muted); }
+  .janela textarea { width: 100%; font: inherit; border: 1px solid var(--line); border-radius: 8px; padding: 10px; height: 90px; resize: vertical; color: var(--ink); }
+  .janela .barra { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+  .janela .erro { color: var(--vermelho); font-size: 13px; min-height: 18px; margin-top: 6px; }
+  #resumoTexto {
+    width: 100%; height: 210px; font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 13px; border: 1px solid var(--line); border-radius: 8px; padding: 10px; resize: vertical; color: var(--ink);
+  }
+  @media (max-width: 430px) {
+    .rodape .valor { font-size: 21px; }
+    .pagar .quanto { font-size: 18px; }
+    .btn { padding: 7px 10px; font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="arte" aria-hidden="true"></div>
+
+<!-- ---------- Tela de login ---------- -->
+<div id="login">
+  <img id="logoLogin" alt="consol">
+  <h1>Timesheet</h1>
+  <p id="textoLogin">Sign in with your work e-mail. A 6-digit code will be sent to it.</p>
+
+  <input type="email" id="campoEmail" placeholder="you@example.com" autocomplete="email">
+  <input type="text" id="campoCodigo" inputmode="numeric" maxlength="6" placeholder="000000" class="oculto">
+
+  <button class="btn claro principal" id="btnEnviarCodigo">Send code</button>
+  <button class="btn claro principal oculto" id="btnEntrar">Sign in</button>
+  <button class="voltar oculto" id="btnOutroEmail">use another e-mail</button>
+
+  <div class="erro" id="erroLogin"></div>
+</div>
+
+<!-- ---------- App ---------- -->
+<div class="wrap oculto" id="app">
+  <header>
+    <div class="topo-marca">
+      <img id="logo" alt="consol">
+      <div class="quem">
+        <b id="meuNome">—</b>
+        <span class="selo" id="meuPapel">USER</span>
+        <button class="voltar" id="btnSair">sign out</button>
+      </div>
+    </div>
+
+    <div class="abas">
+      <button class="aba ativa" id="abaSemana">This week</button>
+      <button class="aba" id="abaHistorico">History</button>
+      <button class="aba" id="abaLog">Amendments</button>
+      <button class="aba oculto" id="abaEquipe">Team</button>
+    </div>
+
+    <div class="escolha oculto" id="escolha">
+      <select id="selPessoa"></select>
+    </div>
+
+    <div class="lendo-alguem oculto" id="lendoAlguem">Read-only — you are viewing someone else's timesheet.</div>
+
+    <div class="semana-nav" id="navSemana">
+      <button class="seta" id="anterior" aria-label="Previous week">&#8249;</button>
+      <h1 id="titulo">Week<span id="subtitulo">&nbsp;</span></h1>
+      <button class="seta" id="proxima" aria-label="Next week">&#8250;</button>
+    </div>
+
+    <div id="status"></div>
+  </header>
+
+  <div id="painelSemana"><div id="dias"></div></div>
+  <div id="painelHistorico" class="oculto"></div>
+  <div id="painelLog" class="oculto"></div>
+  <div id="painelEquipe" class="oculto"></div>
+</div>
+
+<footer id="rodape" class="oculto">
+  <div class="rodape">
+    <div class="mini" id="diasMini"></div>
+    <div class="linha">
+      <div>
+        <div class="rotulo">Week total</div>
+        <div class="valor"><span id="semanaHM">0:00</span> <b id="semanaDec">0.00 h</b></div>
+      </div>
+      <div class="pagar">
+        <div class="rotulo">Gross pay</div>
+        <div class="quanto" id="semanaPag">$0.00</div>
+      </div>
+      <div class="acoes">
+        <button class="btn" id="btnResumo">Copy</button>
+        <button class="btn" id="btnLimpar">Clear week</button>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<div class="janela" id="janelaMotivo">
+  <div class="caixa">
+    <h2>Reason for amendment</h2>
+    <p id="textoMotivo">This entry already had a value. The reason goes to the Amendments tab.</p>
+    <textarea id="campoMotivo" placeholder="e.g. clocked out late, forgot to record the finish time"></textarea>
+    <div class="erro" id="erroMotivo"></div>
+    <div class="barra">
+      <button class="btn claro" id="cancelarMotivo">Cancel</button>
+      <button class="btn claro principal" id="confirmarMotivo">Save change</button>
+    </div>
+  </div>
+</div>
+
+<div class="janela" id="janelaResumo">
+  <div class="caixa">
+    <textarea id="resumoTexto" readonly></textarea>
+    <div class="barra"><button class="btn claro" id="fecharResumo">Close</button></div>
+  </div>
+</div>
+
+<script>
+const CFG = <?!= cfg ?>;
+
+const NOMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+const CURTOS = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
+const MESES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+let ses = null;                          // { token, email, nome, papel, taxa, ate, equipe }
+let alvo = null;                         // timesheet sendo visto
+let segunda = segundaDe(new Date());
+let dados = {};
+let pendente = null;
+
+function meuProprio() { return ses && alvo === ses.email; }
+function taxaDoAlvo() {
+  if (!ses) return 0;
+  if (meuProprio()) return ses.taxa;
+  const p = (ses.equipe || []).filter(function (x) { return x.email === alvo; })[0];
+  return p ? p.taxa : 0;
+}
+
+// ---------- Datas ----------
+function segundaDe(d) {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
+  return x;
+}
+function somaDias(d, n) {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  x.setDate(x.getDate() + n);
+  return x;
+}
+function iso(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function deIso(s) { const p = String(s).split('-'); return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2])); }
+function curto(d) { return d.getDate() + ' ' + MESES[d.getMonth()]; }
+function periodo(i) { return curto(i) + ' – ' + curto(somaDias(i, 4)) + ' ' + i.getFullYear(); }
+
+// ---------- Cálculo ----------
+function paraMin(hhmm) {
+  const p = String(hhmm || '').split(':');
+  if (p.length !== 2) return null;
+  const h = parseInt(p[0], 10), m = parseInt(p[1], 10);
+  if (isNaN(h) || isNaN(m)) return null;
+  return h * 60 + m;
+}
+function minutosDoDia(d) {
+  d = d || {};
+  const ini = paraMin(d.entrada), fim = paraMin(d.saida);
+  if (ini === null || fim === null) return 0;
+  let total = (fim <= ini ? fim + 1440 : fim) - ini;
+  if (d.lunch) total -= CFG.lunch;
+  if (d.smoko) total -= CFG.smoko;
+  return Math.max(0, total);
+}
+function totaisDaSemana(inicio, registro) {
+  return [0,1,2,3,4].map(function (i) { return minutosDoDia((registro || {})[iso(somaDias(inicio, i))]); });
+}
+function hm(min) { return Math.floor(min / 60) + ':' + String(min % 60).padStart(2, '0'); }
+function dec(min) { return (min / 60).toFixed(2) + ' h'; }
+function dinheiro(min, taxa) { return CFG.moeda + (min / 60 * (taxa || 0)).toFixed(2); }
+function soma(l) { return l.reduce(function (a, b) { return a + b; }, 0); }
+function faixaMini(t) {
+  return t.map(function (min, i) {
+    return '<div><span>' + CURTOS[i] + '</span><b>' + (min ? hm(min) : '—') + '</b></div>';
+  }).join('');
+}
+function vazioDia(d) { return !d || (!d.entrada && !d.saida && !d.lunch && !d.smoko); }
+function resumoDia(d) {
+  if (vazioDia(d)) return '—';
+  const e = [];
+  if (d.smoko) e.push('smoko');
+  if (d.lunch) e.push('lunch');
+  return (d.entrada || '--:--') + '–' + (d.saida || '--:--') + (e.length ? ' (' + e.join(', ') + ')' : '');
+}
+
+// ---------- Semana ----------
+function desenhar() {
+  document.getElementById('titulo').firstChild.nodeValue = periodo(segunda).slice(0, -5) + ' ';
+  document.getElementById('subtitulo').textContent = segunda.getFullYear();
+
+  const hojeIso = iso(new Date());
+  const caixa = document.getElementById('dias');
+  const podeEditar = meuProprio();
+  caixa.innerHTML = '';
+
+  NOMES.forEach(function (nome, i) {
+    const data = somaDias(segunda, i);
+    const chave = iso(data);
+    const d = dados[chave] || { entrada: '', saida: '', lunch: false, smoko: false };
+    const min = minutosDoDia(d);
+    const viraDia = paraMin(d.entrada) !== null && paraMin(d.saida) !== null && paraMin(d.saida) <= paraMin(d.entrada);
+    const trava = podeEditar ? '' : ' disabled';
+
+    const el = document.createElement('div');
+    el.className = 'dia' + (chave === hojeIso ? ' hoje' : '');
+    el.innerHTML =
+      '<div class="dia-topo">' +
+        '<div class="dia-nome">' + nome + '<small>' + curto(data) + '</small></div>' +
+        '<div class="dia-total' + (min ? '' : ' zero') + '">' + (min ? hm(min) : '—') + '</div>' +
+      '</div>' +
+      '<div class="horas">' +
+        '<input type="time" value="' + d.entrada + '" data-campo="entrada" aria-label="Start ' + nome + '"' + trava + '>' +
+        '<span class="ate">to</span>' +
+        '<input type="time" value="' + d.saida + '" data-campo="saida" aria-label="Finish ' + nome + '"' + trava + '>' +
+      '</div>' +
+      '<div class="chips">' +
+        '<label class="chip' + (d.smoko ? ' on' : '') + (podeEditar ? '' : ' travado') + '">' +
+          '<input type="checkbox" data-campo="smoko"' + (d.smoko ? ' checked' : '') + trava + '>' +
+          '<span class="marcador"></span>Smoko' + (CFG.smoko ? ' −' + CFG.smoko + ' min' : '') +
+        '</label>' +
+        '<label class="chip' + (d.lunch ? ' on' : '') + (podeEditar ? '' : ' travado') + '">' +
+          '<input type="checkbox" data-campo="lunch"' + (d.lunch ? ' checked' : '') + trava + '>' +
+          '<span class="marcador"></span>Lunch −' + CFG.lunch + ' min' +
+        '</label>' +
+      '</div>' +
+      (viraDia ? '<div class="aviso">Shift crosses midnight — counted into the next day.</div>' : '');
+
+    el.querySelectorAll('input').forEach(function (inp) {
+      inp.addEventListener('change', function () {
+        const anterior = dados[chave] ? JSON.parse(JSON.stringify(dados[chave])) : null;
+        const novo = anterior ? JSON.parse(JSON.stringify(anterior)) : { entrada: '', saida: '', lunch: false, smoko: false };
+        novo[inp.dataset.campo] = (inp.type === 'checkbox') ? inp.checked : inp.value;
+
+        if (vazioDia(anterior)) {
+          enviarDia(chave, novo, '');
+        } else {
+          pendente = { dia: chave, valores: novo };
+          document.getElementById('textoMotivo').textContent =
+            'Changing ' + nome + ' ' + curto(data) + ': ' + resumoDia(anterior) + ' → ' + resumoDia(novo) + '.';
+          document.getElementById('campoMotivo').value = '';
+          document.getElementById('erroMotivo').textContent = '';
+          abrirJanela('janelaMotivo');
+          document.getElementById('campoMotivo').focus();
+        }
+      });
+    });
+
+    caixa.appendChild(el);
+  });
+
+  const totais = totaisDaSemana(segunda, dados);
+  document.getElementById('diasMini').innerHTML = faixaMini(totais);
+  document.getElementById('semanaHM').textContent = hm(soma(totais));
+  document.getElementById('semanaDec').textContent = dec(soma(totais));
+  document.getElementById('semanaPag').textContent = dinheiro(soma(totais), taxaDoAlvo());
+  document.getElementById('btnLimpar').classList.toggle('oculto', !podeEditar);
+  document.getElementById('lendoAlguem').classList.toggle('oculto', podeEditar);
+}
+
+function enviarDia(dia, valores, motivo) {
+  aviso('Saving…');
+  google.script.run
+    .withSuccessHandler(function (r) {
+      dados[dia] = valores;
+      if (vazioDia(valores)) delete dados[dia];
+      desenhar();
+      aviso('Saved at ' + r.hora);
+    })
+    .withFailureHandler(function (e) {
+      aviso(e.message, true);
+      if (/session expired/i.test(e.message)) return sairDaSessao();
+      carregar();
+    })
+    .salvarDia(ses.token, iso(segunda), dia, valores, motivo);
+}
+
+// ---------- Histórico ----------
+function abrirHistorico() {
+  const painel = document.getElementById('painelHistorico');
+  painel.innerHTML = '<div class="vazio">Loading…</div>';
+
+  google.script.run
+    .withSuccessHandler(function (lista) {
+      if (!lista || !lista.length) { painel.innerHTML = '<div class="vazio">No weeks saved yet.</div>'; return; }
+      const atualIso = iso(segundaDe(new Date()));
+      const taxa = taxaDoAlvo();
+
+      painel.innerHTML = lista.map(function (item) {
+        const inicio = deIso(item.segunda);
+        const t = totaisDaSemana(inicio, item.dados);
+        return '<div class="cartao">' +
+            '<div class="topo">' +
+              '<div class="periodo">' + periodo(inicio) + (item.segunda === atualIso ? '<span class="atual">CURRENT</span>' : '') + '</div>' +
+              '<div class="soma">' + hm(soma(t)) + '<em>' + dinheiro(soma(t), taxa) + ' gross</em></div>' +
+            '</div>' +
+            '<div class="mini">' + faixaMini(t) + '</div>' +
+            '<button class="btn claro" style="margin-top:10px" data-semana="' + item.segunda + '">Open this week</button>' +
+          '</div>';
+      }).join('');
+
+      painel.querySelectorAll('[data-semana]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          segunda = deIso(b.dataset.semana);
+          mostrarAba('semana');
+          carregar();
+        });
+      });
+    })
+    .withFailureHandler(function (e) { painel.innerHTML = '<div class="vazio">' + e.message + '</div>'; })
+    .carregarHistorico(ses.token, alvo);
+}
+
+// ---------- Amendments ----------
+function abrirLog() {
+  const painel = document.getElementById('painelLog');
+  painel.innerHTML = '<div class="vazio">Loading…</div>';
+
+  google.script.run
+    .withSuccessHandler(function (lista) {
+      if (!lista || !lista.length) {
+        painel.innerHTML = '<div class="vazio">No amendments recorded yet.</div>';
+        return;
+      }
+      painel.innerHTML = lista.map(function (e) {
+        return '<div class="cartao">' +
+            '<div class="log-topo"><span>' + e.quando + '</span><span class="log-tipo">' + String(e.tipo).toUpperCase() + '</span></div>' +
+            '<div class="log-mudanca"><b>' + curto(deIso(e.dia)) + '</b> — <s>' + e.antes + '</s> → ' + e.depois + '</div>' +
+            '<div class="log-motivo' + (e.motivo ? '' : ' sem') + '">' + (e.motivo || 'no reason given') + '</div>' +
+          '</div>';
+      }).join('');
+    })
+    .withFailureHandler(function (e) { painel.innerHTML = '<div class="vazio">' + e.message + '</div>'; })
+    .carregarLog(ses.token, alvo);
+}
+
+// ---------- Team (admin) ----------
+function abrirEquipe() {
+  const painel = document.getElementById('painelEquipe');
+  painel.innerHTML = '<div class="vazio">Loading…</div>';
+
+  google.script.run
+    .withSuccessHandler(function (lista) {
+      painel.innerHTML =
+        '<div class="cartao"><div class="periodo">' + periodo(segunda) + '</div></div>' +
+        lista.map(function (p) {
+          const t = totaisDaSemana(segunda, p.dados);
+          return '<div class="cartao">' +
+              '<div class="topo">' +
+                '<div class="periodo">' + p.nome + '<span class="selo' + (p.papel === 'admin' ? ' admin' : '') + '" style="margin-left:8px">' + p.papel.toUpperCase() + '</span></div>' +
+                '<div class="soma">' + hm(soma(t)) + '<em>' + dinheiro(soma(t), p.taxa) + ' gross</em></div>' +
+              '</div>' +
+              '<div class="mini">' + faixaMini(t) + '</div>' +
+              '<button class="btn claro" style="margin-top:10px" data-pessoa="' + p.email + '">Open timesheet</button>' +
+            '</div>';
+        }).join('');
+
+      painel.querySelectorAll('[data-pessoa]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          alvo = b.dataset.pessoa;
+          document.getElementById('selPessoa').value = alvo;
+          mostrarAba('semana');
+          carregar();
+        });
+      });
+    })
+    .withFailureHandler(function (e) { painel.innerHTML = '<div class="vazio">' + e.message + '</div>'; })
+    .resumoEquipe(ses.token, iso(segunda));
+}
+
+// ---------- Abas ----------
+function mostrarAba(qual) {
+  const naSemana = (qual === 'semana');
+  document.getElementById('abaSemana').classList.toggle('ativa', naSemana);
+  document.getElementById('abaHistorico').classList.toggle('ativa', qual === 'historico');
+  document.getElementById('abaLog').classList.toggle('ativa', qual === 'log');
+  document.getElementById('abaEquipe').classList.toggle('ativa', qual === 'equipe');
+  document.getElementById('painelSemana').classList.toggle('oculto', !naSemana);
+  document.getElementById('painelHistorico').classList.toggle('oculto', qual !== 'historico');
+  document.getElementById('painelLog').classList.toggle('oculto', qual !== 'log');
+  document.getElementById('painelEquipe').classList.toggle('oculto', qual !== 'equipe');
+  document.getElementById('navSemana').classList.toggle('oculto', qual === 'log' || qual === 'historico');
+  document.getElementById('rodape').classList.toggle('oculto', !naSemana);
+  document.body.style.paddingBottom = naSemana ? '170px' : '32px';
+}
+
+// ---------- Servidor ----------
+function aviso(texto, erro) {
+  const el = document.getElementById('status');
+  el.textContent = texto;
+  el.className = erro ? 'erro' : '';
+}
+
+function carregar() {
+  aviso('Loading…');
+  google.script.run
+    .withSuccessHandler(function (res) { dados = res || {}; desenhar(); aviso(''); })
+    .withFailureHandler(function (e) {
+      aviso(e.message, true);
+      if (/session expired/i.test(e.message)) sairDaSessao();
+    })
+    .carregarSemana(ses.token, alvo, iso(segunda));
+}
+
+function abrirJanela(id) { document.getElementById(id).classList.add('aberta'); }
+function fecharJanela(id) { document.getElementById(id).classList.remove('aberta'); }
+
+// ---------- Sessão ----------
+function guardarToken(t) {
+  try { t ? sessionStorage.setItem('tk', t) : sessionStorage.removeItem('tk'); } catch (e) {}
+}
+
+function entrar(s) {
+  ses = s;
+  alvo = s.email;
+  guardarToken(s.token);
+
+  document.getElementById('login').classList.add('oculto');
+  document.getElementById('app').classList.remove('oculto');
+  document.getElementById('meuNome').textContent = s.nome;
+
+  const selo = document.getElementById('meuPapel');
+  selo.textContent = s.papel.toUpperCase();
+  selo.className = 'selo' + (s.papel === 'admin' ? ' admin' : '');
+
+  const ehAdmin = s.papel === 'admin';
+  document.getElementById('abaEquipe').classList.toggle('oculto', !ehAdmin);
+  document.getElementById('escolha').classList.toggle('oculto', !ehAdmin);
+
+  if (ehAdmin) {
+    const sel = document.getElementById('selPessoa');
+    sel.innerHTML = (s.equipe || []).map(function (p) {
+      return '<option value="' + p.email + '">' + p.nome + (p.email === s.email ? ' (you)' : '') + '</option>';
+    }).join('');
+    sel.value = s.email;
+  }
+
+  mostrarAba('semana');
+  carregar();
+}
+
+function sairDaSessao() {
+  if (ses) google.script.run.sair(ses.token);
+  ses = null; alvo = null; dados = {};
+  guardarToken(null);
+  document.getElementById('app').classList.add('oculto');
+  document.getElementById('rodape').classList.add('oculto');
+  document.getElementById('login').classList.remove('oculto');
+  document.getElementById('campoCodigo').classList.add('oculto');
+  document.getElementById('btnEntrar').classList.add('oculto');
+  document.getElementById('btnOutroEmail').classList.add('oculto');
+  document.getElementById('btnEnviarCodigo').classList.remove('oculto');
+  document.getElementById('erroLogin').textContent = '';
+}
+
+// ---------- Ações do login ----------
+document.getElementById('btnEnviarCodigo').addEventListener('click', function () {
+  const b = this;
+  const email = document.getElementById('campoEmail').value.trim();
+  if (!email) { document.getElementById('erroLogin').textContent = 'Type your e-mail.'; return; }
+
+  b.disabled = true;
+  document.getElementById('erroLogin').textContent = '';
+  document.getElementById('textoLogin').textContent = 'Sending…';
+
+  google.script.run
+    .withSuccessHandler(function () {
+      b.disabled = false;
+      b.classList.add('oculto');
+      document.getElementById('textoLogin').textContent = 'Code sent to ' + email + '. It expires in 10 minutes.';
+      document.getElementById('campoEmail').classList.add('oculto');
+      const campo = document.getElementById('campoCodigo');
+      campo.classList.remove('oculto');
+      campo.value = '';
+      campo.focus();
+      document.getElementById('btnEntrar').classList.remove('oculto');
+      document.getElementById('btnOutroEmail').classList.remove('oculto');
+    })
+    .withFailureHandler(function (e) {
+      b.disabled = false;
+      document.getElementById('textoLogin').textContent = 'Sign in with your work e-mail.';
+      document.getElementById('erroLogin').textContent = e.message;
+    })
+    .pedirCodigo(email);
+});
+
+document.getElementById('btnEntrar').addEventListener('click', function () {
+  const b = this;
+  b.disabled = true;
+  document.getElementById('erroLogin').textContent = '';
+
+  google.script.run
+    .withSuccessHandler(function (s) { b.disabled = false; entrar(s); })
+    .withFailureHandler(function (e) { b.disabled = false; document.getElementById('erroLogin').textContent = e.message; })
+    .validarCodigo(document.getElementById('campoEmail').value.trim(), document.getElementById('campoCodigo').value);
+});
+
+document.getElementById('btnOutroEmail').addEventListener('click', function () {
+  document.getElementById('campoEmail').classList.remove('oculto');
+  document.getElementById('campoCodigo').classList.add('oculto');
+  document.getElementById('btnEntrar').classList.add('oculto');
+  this.classList.add('oculto');
+  document.getElementById('btnEnviarCodigo').classList.remove('oculto');
+  document.getElementById('textoLogin').textContent = 'Sign in with your work e-mail.';
+  document.getElementById('erroLogin').textContent = '';
+});
+
+// ---------- Ações do app ----------
+document.getElementById('btnSair').addEventListener('click', sairDaSessao);
+document.getElementById('abaSemana').addEventListener('click', function () { mostrarAba('semana'); });
+document.getElementById('abaHistorico').addEventListener('click', function () { mostrarAba('historico'); abrirHistorico(); });
+document.getElementById('abaLog').addEventListener('click', function () { mostrarAba('log'); abrirLog(); });
+document.getElementById('abaEquipe').addEventListener('click', function () { mostrarAba('equipe'); abrirEquipe(); });
+
+document.getElementById('selPessoa').addEventListener('change', function () {
+  alvo = this.value;
+  carregar();
+});
+
+document.getElementById('anterior').addEventListener('click', function () { segunda = somaDias(segunda, -7); carregar(); });
+document.getElementById('proxima').addEventListener('click', function () { segunda = somaDias(segunda, 7); carregar(); });
+
+document.getElementById('confirmarMotivo').addEventListener('click', function () {
+  const motivo = document.getElementById('campoMotivo').value.trim();
+  if (motivo.length < 3) { document.getElementById('erroMotivo').textContent = 'Write a short reason.'; return; }
+  fecharJanela('janelaMotivo');
+  if (pendente) enviarDia(pendente.dia, pendente.valores, motivo);
+  pendente = null;
+});
+
+document.getElementById('cancelarMotivo').addEventListener('click', function () {
+  pendente = null;
+  fecharJanela('janelaMotivo');
+  desenhar();
+});
+
+document.getElementById('btnLimpar').addEventListener('click', function () {
+  if (!meuProprio()) return;
+  const motivo = prompt('Clearing the whole week. Reason:');
+  if (motivo === null) return;
+  if (motivo.trim().length < 3) { aviso('A reason is required.', true); return; }
+
+  google.script.run
+    .withSuccessHandler(function () { dados = {}; desenhar(); aviso('Week cleared'); })
+    .withFailureHandler(function (e) { aviso(e.message, true); })
+    .limparSemana(ses.token, iso(segunda), motivo.trim());
+});
+
+document.getElementById('btnResumo').addEventListener('click', function () {
+  const taxa = taxaDoAlvo();
+  const nome = meuProprio() ? ses.nome : (document.getElementById('selPessoa').selectedOptions[0] || {}).text || '';
+  const linhas = ['Timesheet — ' + nome, periodo(segunda), ''];
+  let total = 0;
+
+  NOMES.forEach(function (n, i) {
+    const data = somaDias(segunda, i);
+    const d = dados[iso(data)] || {};
+    const min = minutosDoDia(d);
+    total += min;
+    linhas.push(n.substring(0, 3) + ' ' + curto(data) + '  ' + (min ? resumoDia(d) + '  ' + hm(min) : '—'));
+  });
+
+  linhas.push('', 'Total: ' + hm(total) + ' (' + dec(total) + ')');
+  if (taxa) linhas.push('Gross at ' + CFG.moeda + taxa + '/h: ' + dinheiro(total, taxa));
+
+  const campo = document.getElementById('resumoTexto');
+  campo.value = linhas.join('\n');
+  abrirJanela('janelaResumo');
+  campo.focus(); campo.select();
+  try { document.execCommand('copy'); aviso('Summary copied'); } catch (e) { aviso('Select the text and copy it'); }
+});
+
+document.getElementById('fecharResumo').addEventListener('click', function () { fecharJanela('janelaResumo'); });
+
+// ---------- Logotipo e fundo ----------
+google.script.run
+  .withSuccessHandler(function (b64) {
+    const url = 'data:image/png;base64,' + b64;
+    document.getElementById('logo').src = url;
+    document.getElementById('logoLogin').src = url;
+    document.getElementById('arte').style.backgroundImage = 'url("' + url + '")';
+  })
+  .imagemFundo();
+
+// ---------- Início ----------
+(function () {
+  let guardado = null;
+  try { guardado = sessionStorage.getItem('tk'); } catch (e) {}
+  if (!guardado) return;
+
+  google.script.run
+    .withSuccessHandler(function (s) { if (s) entrar(s); else guardarToken(null); })
+    .withFailureHandler(function () { guardarToken(null); })
+    .sessao(guardado);
+})();
+</script>
+</body>
+</html>
