@@ -23,14 +23,26 @@
 // >>> URL /exec da implantação (atualize só se criar outra implantação) <<<
 const EXEC = 'https://script.google.com/macros/s/AKfycbzNMcvYcrHaPcw3QiQXmtMrC9MdloS1cB5dyP_ElbNEhOV9Q3nKK-i0NhiWCmV5L6xK/exec';
 
-const CHAVE = 'timesheet-aparelho';   // guarda { dt, email }
+const CHAVE = 'timesheet-aparelho';   // identificador fixo deste aparelho
 
-function ler() {
-  try { return JSON.parse(localStorage.getItem(CHAVE) || 'null'); } catch (e) { return null; }
+function novoId() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  const b = crypto.getRandomValues(new Uint8Array(16));
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const h = Array.from(b).map(function (x) { return x.toString(16).padStart(2, '0'); }).join('');
+  return h.slice(0, 8) + '-' + h.slice(8, 12) + '-' + h.slice(12, 16) + '-' + h.slice(16, 20) + '-' + h.slice(20);
 }
 
-function gravar(v) {
-  try { v ? localStorage.setItem(CHAVE, JSON.stringify(v)) : localStorage.removeItem(CHAVE); } catch (e) {}
+/** Devolve o identificador deste aparelho, criando e guardando um na primeira vez. */
+function idAparelho(trocar) {
+  let v = null;
+  try { v = localStorage.getItem(CHAVE); } catch (e) {}
+  if (!v || trocar) {
+    v = novoId();
+    try { localStorage.setItem(CHAVE, v); } catch (e) {}
+  }
+  return v;
 }
 
 function abrirApp(dt) {
@@ -44,14 +56,9 @@ window.addEventListener('message', function (e) {
 
   const msg = e.data || {};
 
-  // o app acabou de logar e mandou a chave deste aparelho
-  if (msg.tipo === 'dispositivo' && msg.dt) {
-    gravar({ dt: msg.dt, email: msg.email });
-  }
-
-  // sign out, ou chave recusada pelo servidor
-  if (msg.tipo === 'sair' || msg.tipo === 'dispositivo-invalido') {
-    gravar(null);
+  // sign out: este aparelho ganha um identificador novo, desligado do usuário anterior
+  if (msg.tipo === 'trocar-aparelho' || msg.tipo === 'sair') {
+    idAparelho(true);
   }
 
   // o app pediu a localização (o iframe do Google não tem acesso ao GPS)
@@ -72,9 +79,9 @@ window.addEventListener('message', function (e) {
   }
 });
 
-// Abre direto com a chave guardada; sem chave, o app mostra a tela de login.
-const salvo = ler();
-abrirApp(salvo && salvo.dt ? salvo.dt : '');
+// O identificador vai sempre na URL: o app entra direto se já conhecer este aparelho,
+// e passa a conhecê-lo assim que você fizer o login por e-mail uma vez.
+abrirApp(idAparelho(false));
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js'); });
