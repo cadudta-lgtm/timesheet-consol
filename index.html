@@ -18,7 +18,6 @@
 <body>
 
 <iframe id="app" allow="clipboard-write; geolocation"></iframe>
-<div id="diagCasca" style="position:fixed;bottom:0;left:0;right:0;z-index:99;background:#111;color:#FFD54F;font:11px ui-monospace,monospace;padding:3px 6px;word-break:break-all"></div>
 
 <script>
 // >>> URL /exec da implantação (atualize só se criar outra implantação) <<<
@@ -82,22 +81,7 @@ window.addEventListener('message', function (e) {
 
 // O identificador vai sempre na URL: o app entra direto se já conhecer este aparelho,
 // e passa a conhecê-lo assim que você fizer o login por e-mail uma vez.
-(function () {
-  let antes = null;
-  try { antes = localStorage.getItem(CHAVE); } catch (e) { antes = 'BLOQUEADO'; }
-
-  const id = idAparelho(false);
-
-  let depois = null;
-  try { depois = localStorage.getItem(CHAVE); } catch (e) { depois = 'BLOQUEADO'; }
-
-  document.getElementById('diagCasca').textContent =
-    'shell · ao abrir=' + (antes === 'BLOQUEADO' ? 'localStorage BLOQUEADO' : (antes ? antes.slice(0, 8) : 'vazio')) +
-    ' · usando=' + id.slice(0, 8) +
-    ' · gravado=' + (depois === 'BLOQUEADO' ? 'NAO (bloqueado)' : (depois ? depois.slice(0, 8) : 'NAO'));
-
-  abrirApp(id);
-})();
+abrirApp(idAparelho(false));
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js'); });
